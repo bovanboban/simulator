@@ -1,0 +1,51 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+use sha2::{Sha256, Digest};
+
+#[derive(Debug, Clone)]
+struct Block {
+    index: u32,
+    timestamp: u64,
+    data: String,
+    previous_hash: String,
+    hash: String,
+    nonce: u64,
+}
+
+impl Block {
+    fn new(index: u32, data: String, previous_hash: String) -> Self {
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let (hash, nonce) = Self::mine_block(index, data.clone(), previous_hash.clone(), timestamp);
+        Block {
+            index,
+            timestamp,
+            data,
+            previous_hash,
+            hash,
+            nonce,
+        }
+    }
+
+    fn mine_block(index: u32, data: String, previous_hash: String, timestamp: u64) -> (String, u64) {
+        let mut nonce = 0;
+        loop {
+            let to_hash = format!("{}{}{}{}{}", index, timestamp, data, previous_hash, nonce);
+            let hash = Self::calculate_hash(&to_hash);
+            if &hash[..4] == "0000" {
+                return (hash, nonce);
+            }
+            nonce += 1;
+        }
+    }
+
+    fn calculate_hash(input: &str) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(input);
+        let result = hasher.finalize();
+        format!("{:x}", result)
+    }
+}
+
+fn main() {
+    let genesis_block = Block::new(0, "Genesis Block".to_string(), "0".to_string());
+    println!("{:?}", genesis_block);
+}
